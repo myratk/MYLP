@@ -8,7 +8,7 @@ public class sym {
   /* terminals */
   public static final int TIMES = 10;
   public static final int PLUS = 8;
-  public static final int INT = 24;
+  public static final int INT = 25;
   public static final int RPAREN = 15;
   public static final int THEN = 6;
   public static final int CALL = 13;
@@ -23,6 +23,7 @@ public class sym {
   public static final int VARDEC = 2;
   public static final int DO = 3;
   public static final int ASSIGNS = 16;
+  public static final int FUNCNAME = 24;
   public static final int COMMA = 18;
   public static final int EOF = 0;
   public static final int DIVIDE = 11;
@@ -56,6 +57,7 @@ public class sym {
   "END",
   "FINISH",
   "ID",
+  "FUNCNAME",
   "INT"
   };
 }

@@ -1,7 +1,0 @@
-START;
-var x; var y;
-x = 1;
-print (x);
-y = 10;
-print (x+y);
-FINISH;

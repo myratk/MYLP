@@ -6,6 +6,9 @@ import java_cup.runtime.*;
 public class scanner {
   /* single lookahead character */
   protected static int next_char;
+
+  private static boolean functionAdded;
+  private static boolean callMade;
  
   /* advance input by one character */
   protected static void advance()
@@ -52,20 +55,26 @@ public class scanner {
                 inputString += fromchar;
                 advance();
               } while ((next_char>='a'&& next_char <='z') || (next_char>='A' && next_char<='Z'));
-            return switch (inputString) {
-              case "print" -> new Symbol(sym.PRINT);
-              case "call" -> new Symbol(sym.CALL);
-              case "do" -> new Symbol(sym.DO);
-              case "while" -> new Symbol(sym.WHILE);
-              case "if" -> new Symbol(sym.IF);
-              case "then" -> new Symbol(sym.THEN);
-              case "var" -> new Symbol(sym.VARDEC);
-              case "START" -> new Symbol(sym.START);
-              case "FINISH" -> new Symbol(sym.FINISH);
-              case "end" -> new Symbol(sym.END);
-              case "function" -> new Symbol(sym.FUNCTION);
-              default -> new Symbol(sym.ID, inputString);
-            };
+              switch (inputString) {
+              case "print": return new Symbol(sym.PRINT);
+              case "call": callMade=true; return new Symbol(sym.CALL);
+              case "do": return new Symbol(sym.DO);
+              case "while": return new Symbol(sym.WHILE);
+              case "if": return new Symbol(sym.IF);
+              case "then": return new Symbol(sym.THEN);
+              case "var": return new Symbol(sym.VARDEC);
+              case "START": return new Symbol(sym.START);
+              case "FINISH": return new Symbol(sym.FINISH);
+              case "end": return new Symbol(sym.END);
+              case "function": functionAdded=true; return new Symbol(sym.FUNCTION);
+              default:
+                if(functionAdded) {
+                  functionAdded=false; return new Symbol(sym.FUNCNAME, inputString); }
+                else if (callMade) {
+                  callMade=false; return new Symbol(sym.FUNCNAME, inputString); }
+                else
+                  return new Symbol(sym.ID, inputString);
+              }
 
             case '=': advance(); return new Symbol(sym.ASSIGNS);
             case ';': advance(); return new Symbol(sym.SEMI);

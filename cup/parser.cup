@@ -24,7 +24,7 @@ otherwise we have an error.
 -If s is a repeat statement, it returns the table after the
 repeat's statements have been executed one or more times */
 
- Table interpStm(Stm s, Stm r, Table t) {  
+ Table interpStm(Stm s, FuncList fs, Table t) {
    if (s instanceof PrintStm)  
      {  printList(s.getExps(), t);
         return t;
@@ -34,21 +34,21 @@ repeat's statements have been executed one or more times */
         else System.out.println("ERROR: Using undeclared variable");
         return t; }
    else if (s instanceof CompoundStm)
-        return interpStm(s.get2(), r, interpStm(s.get1(),r,t));
+        return interpStm(s.get2(), fs, interpStm(s.get1(),fs,t));
    else if (s instanceof CallStm)
-        return interpStm(r, r, t);
+        return interpStm(getFuncStms(s.getName(), fs), fs, t);
    else if (s instanceof RepeatStm) {
         /* first change table to simulate execution of stms inside repeat.. */
-        Table table_temp = interpStm(s.getRepStm(),r,t);
+        Table table_temp = interpStm(s.getRepStm(),fs,t);
         /* find value of e in new table.. */
         int   int_temp = interpExp(s.getRepExp(),table_temp);
         /* call statements again if expression is non-zero */
         if (int_temp == 0) return table_temp; else
-        return interpStm(s, r, table_temp); }
+        return interpStm(s, fs, table_temp); }
    else if (s instanceof SelectionStm) {
         int temp = interpExp(s.getSelectionExp(), t);
         if (temp==0) { return t; }
-        else { return interpStm(s.getSelectionStm(), r, t); } }
+        else { return interpStm(s.getSelectionStm(), fs, t); } }
    else if (s instanceof DecStm) {
         return update(t, s.getDecId(), 0); }
    else
@@ -122,6 +122,11 @@ associated with key once its found */
     else return inTable(t.gettail(), key);
   }
 
+  Stm getFuncStms(String name, FuncList fs) {
+    if (fs.getName().equals(name)) return fs.getStm();
+    else return getFuncStms(name, fs.getTail());
+  }
+
 
 /* This class represents the Store of the program */
 
@@ -161,6 +166,7 @@ abstract class Stm {
    protected Stm getSelectionStm() { return null; }
    protected Exp getSelectionExp() { return null; }
    protected String getDecId() { return null; }
+   protected String getName() { return null; }
 }
 
 class CompoundStm extends Stm {
@@ -172,8 +178,9 @@ class CompoundStm extends Stm {
 }
 
 class CallStm extends Stm {
-    Exp exp;
-    CallStm(Exp e) {exp =e; }
+    String name;
+    CallStm(String n) {name =n; }
+    public String getName() { return name; }
 }
 
 class AssignStm extends Stm {
@@ -264,6 +271,18 @@ class LastExpList extends ExpList {
 
    public Exp gethead() {return head;}
 }
+
+class FuncList {
+    String name;
+    Stm stm;
+    FuncList tail;
+
+    FuncList(String n, Stm s, FuncList t) { name=n; stm=s; tail=t; }
+
+    String getName() { return name; }
+    Stm getStm() { return stm; }
+    FuncList getTail() { return tail; }
+}
             :} ;
 
 parser code {:
@@ -283,7 +302,7 @@ scan with {: return scanner.next_token(); :};
 
 terminal           VARDEC, DO, WHILE, IF, THEN, SEMI, PLUS, MINUS, TIMES, DIVIDE, GT, CALL;
 terminal           LPAREN, RPAREN, ASSIGNS, PRINT, COMMA, START, FUNCTION, END, FINISH;
-terminal String    ID;
+terminal String    ID, FUNCNAME;
 terminal Integer   INT;
 
 /* Non terminals .. if they have a RESULT then
@@ -291,6 +310,8 @@ this result must be typed... */
 non terminal Stm stm; 
 non terminal Stm single_stm; 
 non terminal Table prog;
+non terminal FuncList func;
+non terminal FuncList single_func;
 non terminal ExpList exps;
 non terminal Exp exp;
 
@@ -303,11 +324,22 @@ start with prog;
 
 /* The grammar */
 
-prog ::= START SEMI FUNCTION SEMI stm:r END SEMI stm:s FINISH SEMI 
-        {: RESULT = interpStm(s,r,new Table("",0,null)); :} 
+prog ::= START SEMI func:fs stm:s FINISH SEMI
+        {: RESULT = interpStm(s,fs,new Table("",0,null)); :}
         ;
 prog ::= START SEMI stm:s FINISH SEMI 
         {: RESULT = interpStm(s,null,new Table("",0,null));  :}
+        ;
+func ::= single_func:f func:fs
+        {: RESULT = new FuncList(f.getName(), f.getStm(), fs); :}
+        ;
+
+func ::= single_func:s
+        {: RESULT = s; :}
+        ;
+
+single_func ::= FUNCTION FUNCNAME:name SEMI stm:s END SEMI
+        {: RESULT = new FuncList(name, s, null); :}
         ;
 
 stm::= single_stm:s1 stm:s2
@@ -317,8 +349,8 @@ stm::= single_stm:s1
         {: RESULT = s1; :}
          ;
 single_stm ::=
-        CALL exp:e SEMI
-        {: RESULT = new CallStm(e); :}
+        CALL FUNCNAME:f SEMI
+        {: RESULT = new CallStm(f); :}
          |
        ID:id ASSIGNS exp:e SEMI
         {: RESULT = new AssignStm(id,e); :}
