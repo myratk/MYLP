@@ -1,0 +1,15 @@
+START;
+function;
+do
+   numOne = numOne-1;
+   numTwo = numOne*numOne;
+   print (numOne,numTwo);
+   print (numOne > 10);
+while numOne > 10;
+end;
+var numOne; var numTwo;
+numOne = 23;
+call 1;
+numOne = 13;
+call 1;
+FINISH;
